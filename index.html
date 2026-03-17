@@ -1,32 +1,45 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>간단한 Web-AR 차량 테스트</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차량용 배터리 AR 도슨트</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
-<body style="margin : 0px; overflow: hidden;">
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
-    
-    <a-assets>
-      <a-asset-item id="my-car" src="carmodel.glb"></a-asset-item>
-    </a-assets>
 
-    <a-marker type="pattern" url="company-logo.patt">
-      <a-entity 
-        gltf-model="#my-car" 
-        scale="0.05 0.05 0.05" 
-        position="0 0.5 0" 
-        rotation="0 0 0">
-      </a-entity>
-    </a-marker>
+<body style="margin: 0px; overflow: hidden;">
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;"
+        renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true;">
+        
+        <a-assets>
+            <a-asset-item id="battery-model" src="carmodel.glb"></a-asset-item>
+        </a-assets>
 
-    <a-entity light="type: ambient; intensity: 1;"></a-entity>
-    <a-entity light="type: directional; castShadow: true; intensity: 0.5;" position="-1 2 1"></a-entity>
+        <a-marker type="pattern" url="company-logo.patt">
+            
+            <a-entity 
+                id="battery-entity"
+                gltf-model="#battery-model" 
+                scale="0.05 0.05 0.05" 
+                position="0 0.2 0" 
+                rotation="0 0 0">
+            </a-entity>
 
-    <a-entity camera></a-entity>
-  </a-scene>
+        </a-marker>
+
+        <a-entity light="type: ambient; color: #ffffff; intensity: 0.7;"></a-entity>
+        
+        <a-entity light="type: directional; color: #ffffff; intensity: 1; castShadow: true;" 
+                  position="1 4 3"></a-entity>
+
+        <a-entity light="type: point; intensity: 0.5; distance: 10;" 
+                  position="-2 3 2"></a-entity>
+
+        <a-entity camera></a-entity>
+
+    </a-scene>
 </body>
 </html>
