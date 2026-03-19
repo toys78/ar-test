@@ -2,43 +2,186 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>toys78 AR - Debug</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+
+    <style>
+        #status-overlay {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 9999;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            max-width: 320px;
+            line-height: 1.7;
+            pointer-events: none;
+            border-left: 4px solid #ffd84d;
+        }
+        #status-overlay .ok   { color: #4dff91; }
+        #status-overlay .err  { color: #ff5f5f; }
+        #status-overlay .warn { color: #ffd84d; }
+
+        #test-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            border-radius: 24px;
+            padding: 12px 28px;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+    </style>
+
+    <script>
+        function log(msg, type = '') {
+            const el = document.getElementById('status-overlay');
+            if (!el) return;
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = msg;
+            el.appendChild(line);
+            while (el.children.length > 14) el.removeChild(el.firstChild);
+        }
+
+        AFRAME.registerComponent('safe-animation-loader', {
+            init: function () {
+                const el = this.el;
+
+                el.addEventListener('model-loaded', () => {
+                    log('✅ 모델 로드 성공', 'ok');
+
+                    const obj = el.getObject3D('mesh');
+                    if (!obj) { log('⚠️ mesh 오브젝트 없음', 'warn'); return; }
+
+                    const box = new THREE.Box3().setFromObject(obj);
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    log(`📐 ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}`, 'warn');
+
+                    if (maxDim > 0) {
+                        const s = 1.5 / maxDim;
+                        el.setAttribute('scale', `${s} ${s} ${s}`);
+                        log(`🔧 스케일: ${s.toFixed(4)}`, 'warn');
+                    }
+
+                    setTimeout(() => {
+                        const mesh = el.getObject3D('mesh');
+                        const animCount = mesh?.animations?.length ?? 0;
+                        log(`🎬 애니메이션 ${animCount}개`, animCount > 0 ? 'ok' : 'warn');
+                        el.setAttribute('animation-mixer', {
+                            clip: '*', loop: 'repeat', timeScale: 1, crossFadeDuration: 0
+                        });
+                    }, 300);
+                });
+
+                el.addEventListener('model-error', () => {
+                    log('❌ 모델 파일 로드 실패!', 'err');
+                    log('→ carmodel.glb 경로를 확인하세요', 'err');
+                });
+            }
+        });
+
+        AFRAME.registerComponent('marker-logger', {
+            init: function () {
+                this.el.addEventListener('markerFound', () => {
+                    log('📍 마커 인식됨!', 'ok');
+                    document.getElementById('status-overlay').style.borderLeft = '4px solid #4dff91';
+                });
+                this.el.addEventListener('markerLost', () => {
+                    log('🔍 마커 대기 중...', 'warn');
+                    document.getElementById('status-overlay').style.borderLeft = '4px solid #ffd84d';
+                });
+            }
+        });
+
+        function toggleTestMode() {
+            const scene = document.querySelector('a-scene');
+            const isTest = scene.getAttribute('data-testmode') === 'true';
+
+            if (!isTest) {
+                scene.setAttribute('data-testmode', 'true');
+                document.getElementById('test-btn').textContent = '🔙 AR 모드로 돌아가기';
+
+                // 마커 오브젝트를 강제로 보이게 하고 모델을 카메라 앞에 배치
+                const marker = document.querySelector('a-marker');
+                marker.object3D.visible = true;
+
+                const model = document.querySelector('#target-model');
+                model.setAttribute('position', '0 0 -3');
+
+                log('🧪 테스트 모드 ON', 'warn');
+            } else {
+                scene.setAttribute('data-testmode', 'false');
+                document.getElementById('test-btn').textContent = '🧪 마커 없이 모델 테스트';
+
+                const model = document.querySelector('#target-model');
+                model.setAttribute('position', '0 0 0');
+
+                log('🔙 AR 모드 복귀', 'warn');
+            }
+        }
+
+        window.addEventListener('load', () => {
+            log('🚀 씬 초기화 중...', 'warn');
+            document.querySelector('a-scene').addEventListener('loaded', () => {
+                log('✅ A-Frame 씬 준비 완료', 'ok');
+            });
+        });
+    </script>
 </head>
-<body style="margin: 0; overflow: hidden;">
-    <a-scene 
-        embedded 
-        arjs="sourceType: webcam; debugUIEnabled: false;"
-        renderer="colorManagement: true; antialias: true;">
-        
-        <a-assets>
-            <a-asset-item id="battery" src="carmodel.glb"></a-asset-item>
+<body style="margin:0; overflow:hidden;">
+
+    <div id="status-overlay"></div>
+    <button id="test-btn" onclick="toggleTestMode()">🧪 마커 없이 모델 테스트</button>
+
+    <a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+        renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true;"
+        vr-mode-ui="enabled: false"
+        loading-screen="enabled: false">
+
+        <a-assets timeout="30000">
+            <a-asset-item id="battery-pack" src="carmodel.glb"></a-asset-item>
         </a-assets>
 
-        <a-marker preset="hiro">
-            <a-entity 
-                id="model-target"
-                gltf-model="#battery" 
-                scale="0.01 0.01 0.01" 
-                position="0 0 0">
+        <a-marker
+            type="pattern"
+            url="technical-marker.patt"
+            smooth="true"
+            smoothCount="5"
+            marker-logger>
+
+            <a-entity
+                id="target-model"
+                gltf-model="#battery-pack"
+                scale="1 1 1"
+                position="0 0 0"
+                rotation="0 0 0"
+                safe-animation-loader>
             </a-entity>
         </a-marker>
 
-        <a-entity light="type: ambient; intensity: 3;"></a-entity>
-        <a-entity light="type: directional; intensity: 2;" position="1 4 3"></a-entity>
+        <a-entity light="type: ambient; color: #FFFFFF; intensity: 1.5;"></a-entity>
+        <a-entity light="type: directional; color: #FFFFFF; intensity: 2.0;" position="2 4 3"></a-entity>
+        <a-entity light="type: directional; color: #AADDFF; intensity: 0.8;" position="-2 2 -2"></a-entity>
 
         <a-entity camera></a-entity>
     </a-scene>
-
-    <script>
-        // 모델 로딩 상태를 알림창으로 확인
-        const el = document.querySelector('#model-target');
-        el.addEventListener('model-loaded', () => {
-            alert("✅ 모델 로드 성공! 마커 위를 확인하세요.");
-        });
-        el.addEventListener('model-error', (e) => {
-            alert("❌ 모델 로드 실패: 파일 경로를 확인하세요.");
-        });
-    </script>
 </body>
 </html>
