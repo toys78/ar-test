@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>toys78 AR - Debug</title>
+    <title>toys78 AR</title>
 
     <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
@@ -15,39 +15,55 @@
             top: 10px;
             left: 10px;
             z-index: 9999;
-            background: rgba(0,0,0,0.75);
+            background: rgba(0,0,0,0.7);
             color: #fff;
             font-family: monospace;
             font-size: 13px;
             padding: 10px 14px;
             border-radius: 8px;
-            max-width: 320px;
+            max-width: 300px;
             line-height: 1.7;
             pointer-events: none;
-            border-left: 4px solid #ffd84d;
         }
-        #status-overlay .ok   { color: #4dff91; }
-        #status-overlay .err  { color: #ff5f5f; }
-        #status-overlay .warn { color: #ffd84d; }
+        .ok   { color: #4dff91; }
+        .err  { color: #ff5f5f; }
+        .warn { color: #ffd84d; }
 
-        #test-btn {
+        #scale-ui {
             position: fixed;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 9999;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        #scale-ui button {
             background: #1a73e8;
             color: #fff;
             border: none;
-            border-radius: 24px;
-            padding: 12px 28px;
-            font-size: 15px;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        #scale-ui span {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-family: monospace;
         }
     </style>
 
     <script>
+        // 현재 스케일 값 (버튼으로 조절)
+        let currentScale = 3.0;
+
         function log(msg, type = '') {
             const el = document.getElementById('status-overlay');
             if (!el) return;
@@ -55,34 +71,40 @@
             line.className = type;
             line.textContent = msg;
             el.appendChild(line);
-            while (el.children.length > 14) el.removeChild(el.firstChild);
+            while (el.children.length > 10) el.removeChild(el.firstChild);
         }
 
-        AFRAME.registerComponent('safe-animation-loader', {
+        function applyScale(val) {
+            currentScale = Math.max(0.1, Math.round(val * 10) / 10);
+            const model = document.querySelector('#target-model');
+            if (model) {
+                model.setAttribute('scale', `${currentScale} ${currentScale} ${currentScale}`);
+            }
+            document.getElementById('scale-label').textContent = `크기: ${currentScale.toFixed(1)}`;
+            log(`🔧 크기 조절: ${currentScale.toFixed(1)}`, 'warn');
+        }
+
+        function scaleUp()   { applyScale(currentScale + 0.5); }
+        function scaleDown() { applyScale(currentScale - 0.5); }
+
+        AFRAME.registerComponent('animation-loader', {
             init: function () {
                 const el = this.el;
 
                 el.addEventListener('model-loaded', () => {
                     log('✅ 모델 로드 성공', 'ok');
 
-                    const obj = el.getObject3D('mesh');
-                    if (!obj) { log('⚠️ mesh 오브젝트 없음', 'warn'); return; }
-
-                    const box = new THREE.Box3().setFromObject(obj);
-                    const size = box.getSize(new THREE.Vector3());
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    log(`📐 ${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}`, 'warn');
-
-                    if (maxDim > 0) {
-                        const s = 1.5 / maxDim;
-                        el.setAttribute('scale', `${s} ${s} ${s}`);
-                        log(`🔧 스케일: ${s.toFixed(4)}`, 'warn');
-                    }
+                    // 초기 스케일 적용
+                    el.setAttribute('scale', `${currentScale} ${currentScale} ${currentScale}`);
 
                     setTimeout(() => {
                         const mesh = el.getObject3D('mesh');
                         const animCount = mesh?.animations?.length ?? 0;
-                        log(`🎬 애니메이션 ${animCount}개`, animCount > 0 ? 'ok' : 'warn');
+                        if (animCount > 0) {
+                            log(`🎬 애니메이션 ${animCount}개 재생`, 'ok');
+                        } else {
+                            log('⚠️ 애니메이션 없음', 'warn');
+                        }
                         el.setAttribute('animation-mixer', {
                             clip: '*', loop: 'repeat', timeScale: 1, crossFadeDuration: 0
                         });
@@ -90,56 +112,22 @@
                 });
 
                 el.addEventListener('model-error', () => {
-                    log('❌ 모델 파일 로드 실패!', 'err');
-                    log('→ carmodel.glb 경로를 확인하세요', 'err');
+                    log('❌ 모델 파일 로드 실패', 'err');
                 });
             }
         });
 
         AFRAME.registerComponent('marker-logger', {
             init: function () {
-                this.el.addEventListener('markerFound', () => {
-                    log('📍 마커 인식됨!', 'ok');
-                    document.getElementById('status-overlay').style.borderLeft = '4px solid #4dff91';
-                });
-                this.el.addEventListener('markerLost', () => {
-                    log('🔍 마커 대기 중...', 'warn');
-                    document.getElementById('status-overlay').style.borderLeft = '4px solid #ffd84d';
-                });
+                this.el.addEventListener('markerFound', () => log('📍 마커 인식됨!', 'ok'));
+                this.el.addEventListener('markerLost',  () => log('🔍 마커 대기 중...', 'warn'));
             }
         });
 
-        function toggleTestMode() {
-            const scene = document.querySelector('a-scene');
-            const isTest = scene.getAttribute('data-testmode') === 'true';
-
-            if (!isTest) {
-                scene.setAttribute('data-testmode', 'true');
-                document.getElementById('test-btn').textContent = '🔙 AR 모드로 돌아가기';
-
-                // 마커 오브젝트를 강제로 보이게 하고 모델을 카메라 앞에 배치
-                const marker = document.querySelector('a-marker');
-                marker.object3D.visible = true;
-
-                const model = document.querySelector('#target-model');
-                model.setAttribute('position', '0 0 -3');
-
-                log('🧪 테스트 모드 ON', 'warn');
-            } else {
-                scene.setAttribute('data-testmode', 'false');
-                document.getElementById('test-btn').textContent = '🧪 마커 없이 모델 테스트';
-
-                const model = document.querySelector('#target-model');
-                model.setAttribute('position', '0 0 0');
-
-                log('🔙 AR 모드 복귀', 'warn');
-            }
-        }
-
         window.addEventListener('load', () => {
-            log('🚀 씬 초기화 중...', 'warn');
+            log('🚀 로딩 중...', 'warn');
             document.querySelector('a-scene').addEventListener('loaded', () => {
-                log('✅ A-Frame 씬 준비 완료', 'ok');
+                log('✅ 준비 완료 — 마커를 비춰주세요', 'ok');
             });
         });
     </script>
@@ -147,7 +135,13 @@
 <body style="margin:0; overflow:hidden;">
 
     <div id="status-overlay"></div>
-    <button id="test-btn" onclick="toggleTestMode()">🧪 마커 없이 모델 테스트</button>
+
+    <!-- 크기 조절 버튼 -->
+    <div id="scale-ui">
+        <button onclick="scaleDown()">−</button>
+        <span id="scale-label">크기: 3.0</span>
+        <button onclick="scaleUp()">+</button>
+    </div>
 
     <a-scene
         embedded
@@ -157,23 +151,23 @@
         loading-screen="enabled: false">
 
         <a-assets timeout="30000">
-            <a-asset-item id="battery-pack" src="carmodel.glb"></a-asset-item>
+            <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
         </a-assets>
 
+        <!-- ✅ hiro 마커로 변경 (pattern 파일 불필요) -->
         <a-marker
-            type="pattern"
-            url="technical-marker.patt"
+            type="hiro"
             smooth="true"
             smoothCount="5"
             marker-logger>
 
             <a-entity
                 id="target-model"
-                gltf-model="#battery-pack"
-                scale="1 1 1"
+                gltf-model="#car-model"
+                scale="3 3 3"
                 position="0 0 0"
                 rotation="0 0 0"
-                safe-animation-loader>
+                animation-loader>
             </a-entity>
         </a-marker>
 
