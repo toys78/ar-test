@@ -1,35 +1,181 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>hiro AR Docent</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-</head>
-<body style="margin: 0; overflow: hidden;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>toys78 AR</title>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-        
-        <a-assets>
-            <a-asset-item id="battery-model" src="path/to/your/battery_model.gltf"></a-asset-item>
+    <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+
+    <style>
+        #status-overlay {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 9999;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            max-width: 300px;
+            line-height: 1.7;
+            pointer-events: none;
+        }
+        .ok   { color: #4dff91; }
+        .err  { color: #ff5f5f; }
+        .warn { color: #ffd84d; }
+
+        #scale-ui {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        #scale-ui button {
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        #scale-ui span {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-family: monospace;
+        }
+    </style>
+
+    <script>
+        // 현재 스케일 값 (버튼으로 조절)
+        let currentScale = 3.0;
+
+        function log(msg, type = '') {
+            const el = document.getElementById('status-overlay');
+            if (!el) return;
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = msg;
+            el.appendChild(line);
+            while (el.children.length > 10) el.removeChild(el.firstChild);
+        }
+
+        function applyScale(val) {
+            currentScale = Math.max(0.1, Math.round(val * 10) / 10);
+            const model = document.querySelector('#target-model');
+            if (model) {
+                model.setAttribute('scale', `${currentScale} ${currentScale} ${currentScale}`);
+            }
+            document.getElementById('scale-label').textContent = `크기: ${currentScale.toFixed(1)}`;
+            log(`🔧 크기 조절: ${currentScale.toFixed(1)}`, 'warn');
+        }
+
+        function scaleUp()   { applyScale(currentScale + 0.5); }
+        function scaleDown() { applyScale(currentScale - 0.5); }
+
+        AFRAME.registerComponent('animation-loader', {
+            init: function () {
+                const el = this.el;
+
+                el.addEventListener('model-loaded', () => {
+                    log('✅ 모델 로드 성공', 'ok');
+
+                    // 초기 스케일 적용
+                    el.setAttribute('scale', `${currentScale} ${currentScale} ${currentScale}`);
+
+                    setTimeout(() => {
+                        const mesh = el.getObject3D('mesh');
+                        const animCount = mesh?.animations?.length ?? 0;
+                        if (animCount > 0) {
+                            log(`🎬 애니메이션 ${animCount}개 재생`, 'ok');
+                        } else {
+                            log('⚠️ 애니메이션 없음', 'warn');
+                        }
+                        el.setAttribute('animation-mixer', {
+                            clip: '*', loop: 'repeat', timeScale: 1, crossFadeDuration: 0
+                        });
+                    }, 300);
+                });
+
+                el.addEventListener('model-error', () => {
+                    log('❌ 모델 파일 로드 실패', 'err');
+                });
+            }
+        });
+
+        AFRAME.registerComponent('marker-logger', {
+            init: function () {
+                this.el.addEventListener('markerFound', () => log('📍 마커 인식됨!', 'ok'));
+                this.el.addEventListener('markerLost',  () => log('🔍 마커 대기 중...', 'warn'));
+            }
+        });
+
+        window.addEventListener('load', () => {
+            log('🚀 로딩 중...', 'warn');
+            document.querySelector('a-scene').addEventListener('loaded', () => {
+                log('✅ 준비 완료 — 마커를 비춰주세요', 'ok');
+            });
+        });
+    </script>
+</head>
+<body style="margin:0; overflow:hidden;">
+
+    <div id="status-overlay"></div>
+
+    <!-- 크기 조절 버튼 -->
+    <div id="scale-ui">
+        <button onclick="scaleDown()">−</button>
+        <span id="scale-label">크기: 3.0</span>
+        <button onclick="scaleUp()">+</button>
+    </div>
+
+    <a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+        renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true;"
+        vr-mode-ui="enabled: false"
+        loading-screen="enabled: false">
+
+        <a-assets timeout="30000">
+            <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
         </a-assets>
 
-        <a-marker preset="hiro">
-            <a-entity 
-                gltf-model="#battery-model" 
-                scale="0.5 0.5 0.5" 
-                position="0 0 0" 
-                rotation="0 0 0"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear">
-            </a-entity>
+        <!-- ✅ hiro 마커로 변경 (pattern 파일 불필요) -->
+        <a-marker
+            type="hiro"
+            smooth="true"
+            smoothCount="5"
+            marker-logger>
 
-            <a-text value="Automotive Battery Unit" position="0 0.7 0" align="center" scale="0.8 0.8 0.8" color="#FFFFFF"></a-text>
+            <a-entity
+                id="target-model"
+                gltf-model="#car-model"
+                scale="3 3 3"
+                position="0 0 0"
+                rotation="0 0 0"
+                animation-loader>
+            </a-entity>
         </a-marker>
 
+        <a-entity light="type: ambient; color: #FFFFFF; intensity: 1.5;"></a-entity>
+        <a-entity light="type: directional; color: #FFFFFF; intensity: 2.0;" position="2 4 3"></a-entity>
+        <a-entity light="type: directional; color: #AADDFF; intensity: 0.8;" position="-2 2 -2"></a-entity>
+
         <a-entity camera></a-entity>
-
     </a-scene>
-
 </body>
 </html>
