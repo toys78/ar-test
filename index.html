@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Stable Base</title>
+<title>AR Play Only</title>
 
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -12,7 +12,7 @@
 <style>
 body { margin:0; overflow:hidden; }
 
-/* 안정적인 버튼 UI */
+/* ▶ PLAY 버튼 */
 .play-ui {
     position: fixed;
     bottom: 60px;
@@ -23,16 +23,16 @@ body { margin:0; overflow:hidden; }
 
 .play-btn {
     display: inline-block;
-    padding: 14px 26px;
+    padding: 14px 28px;
     border-radius: 30px;
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.8);
     color: white;
     font-size: 16px;
+    letter-spacing: 2px;
 }
 </style>
 
 <script>
-// 애니메이션 컨트롤 (단순화 버전)
 AFRAME.registerComponent('animation-controller', {
     init: function () {
         this.loaded = false;
@@ -58,10 +58,10 @@ AFRAME.registerComponent('animation-controller', {
 
 <body>
 
-<!-- 가장 안정적인 방식: 항상 보이는 버튼 -->
+<!-- ▶ PLAY 버튼 하나만 -->
 <div class="play-ui">
     <div class="play-btn" onclick="playAnimation()">
-        PLAY
+        ▶ PLAY
     </div>
 </div>
 
@@ -73,7 +73,7 @@ AFRAME.registerComponent('animation-controller', {
         <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
     </a-assets>
 
-    <!-- 최소 조명 (안정성 우선) -->
+    <!-- 기본 조명 -->
     <a-entity light="type: ambient; intensity: 1"></a-entity>
 
     <a-marker preset="hiro">
