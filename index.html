@@ -1,26 +1,16 @@
-<!-- 터치 감지용 투명 레이어 -->
-<div id="touchLayer"></div>
+<div class="play-ui">
+    <div class="play-btn" onclick="playAnimation()">
+        ▶ TAP TO PLAY
+    </div>
+</div>
 
 <style>
-#touchLayer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-
-    z-index: 5; /* AR 위 */
-    background: transparent;
-}
-
-/* PLAY UI */
 .play-ui {
     position: fixed;
     bottom: 60px;
     width: 100%;
     text-align: center;
     z-index: 10;
-    display: none;
 }
 
 .play-btn {
@@ -31,7 +21,7 @@
     color: white;
     font-size: 16px;
 
-    animation: fadeIn 0.6s ease-out, pulse 1.5s infinite;
+    animation: fadeIn 0.8s ease-out, pulse 1.5s infinite;
 }
 
 @keyframes fadeIn {
@@ -46,44 +36,21 @@
 }
 </style>
 
-<div id="playUI" class="play-ui">
-    <div class="play-btn" onclick="playAnimation(event)">
-        ▶ PLAY
-    </div>
-</div>
-
 <script>
-let uiShown = false;
-
-const touchLayer = document.getElementById('touchLayer');
-
-touchLayer.addEventListener('touchstart', showUI, { passive: true });
-touchLayer.addEventListener('click', showUI);
-
-function showUI() {
-    if (uiShown) return;
-
-    document.getElementById('playUI').style.display = 'block';
-
-    // 👉 한 번 터치하면 레이어 제거 (중요)
-    touchLayer.style.display = 'none';
-
-    uiShown = true;
-}
-
-function playAnimation(e){
-    e.stopPropagation();
+function playAnimation(){
 
     const car = document.querySelector('#car');
-    const ui = document.getElementById('playUI');
+    const ui = document.querySelector('.play-ui');
+
+    if (!car || !car.components['animation-controller']) return;
 
     car.components['animation-controller'].play();
 
     ui.style.transition = "opacity 0.5s";
     ui.style.opacity = "0";
 
-    setTimeout(() => {
+    setTimeout(()=>{
         ui.style.display = "none";
-    }, 500);
+    },500);
 }
 </script>
