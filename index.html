@@ -3,10 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Explode Control UI</title>
+<title>AR Explode + Transparency Fix</title>
 
+<!-- A-Frame -->
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+
+<!-- AR.js -->
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+<!-- animation mixer -->
 <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
 <style>
@@ -33,9 +38,9 @@ button {
 </style>
 
 <script>
+// 🎬 애니메이션 컨트롤
 AFRAME.registerComponent('animation-controller', {
     init: function () {
-        this.mixer = null;
         this.modelLoaded = false;
 
         this.el.addEventListener('model-loaded', () => {
@@ -64,10 +69,38 @@ AFRAME.registerComponent('animation-controller', {
             startAt: 1,
             clampWhenFinished: true
         });
-    },
+    }
+});
 
-    stop: function () {
-        this.el.removeAttribute('animation-mixer');
+// 💎 반투명 재질 개선
+AFRAME.registerComponent('fix-transparency', {
+    init: function () {
+        this.el.addEventListener('model-loaded', () => {
+            const mesh = this.el.getObject3D('mesh');
+
+            mesh.traverse((node) => {
+                if (node.isMesh && node.material) {
+
+                    if (node.material.opacity < 1 ||
+                        node.material.name.toLowerCase().includes('glass')) {
+
+                        node.material.transparent = true;
+                        node.material.opacity = 0.5;
+
+                        node.material.depthWrite = false; // 🔥 핵심
+                        node.material.side = THREE.DoubleSide;
+
+                        // 가짜 HDR 효과
+                        node.material.emissive = new THREE.Color(0x222222);
+
+                        node.material.metalness = 0;
+                        node.material.roughness = 0.1;
+
+                        node.material.needsUpdate = true;
+                    }
+                }
+            });
+        });
     }
 });
 </script>
@@ -76,7 +109,7 @@ AFRAME.registerComponent('animation-controller', {
 
 <body>
 
-<!-- UI -->
+<!-- 🎮 UI -->
 <div class="ui">
     <button onclick="explode()">분해</button>
     <button onclick="assemble()">조립</button>
@@ -93,50 +126,72 @@ AFRAME.registerComponent('animation-controller', {
         shadowMap.enabled: true;
     ">
 
+    <!-- 모델 -->
     <a-assets>
         <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
     </a-assets>
 
-    <!-- Lighting -->
+    <!-- 💡 조명 (가짜 HDR 세팅) -->
     <a-entity light="type: ambient; intensity: 0.7; color: #bcdcff;"></a-entity>
 
-    <a-entity light="type: directional; intensity: 1.6; color: #fff2cc; castShadow: true"
-        position="2 4 3"></a-entity>
+    <a-entity 
+        light="type: directional; intensity: 1.6; color: #fff2cc; castShadow: true"
+        position="2 4 3">
+    </a-entity>
 
-    <a-entity light="type: directional; intensity: 0.6"
-        position="-2 2 1"></a-entity>
+    <a-entity 
+        light="type: directional; intensity: 0.6"
+        position="-2 2 1">
+    </a-entity>
 
-    <a-entity light="type: directional; intensity: 0.8"
-        position="0 3 -3"></a-entity>
+    <a-entity 
+        light="type: directional; intensity: 0.8"
+        position="0 3 -3">
+    </a-entity>
 
-    <!-- Marker -->
+    <!-- 마커 -->
     <a-marker preset="hiro">
 
-        <!-- Shadow -->
-        <a-plane rotation="-90 0 0" width="5" height="5"
-            material="opacity:0" shadow="receive:true"></a-plane>
+        <!-- 그림자 받는 바닥 -->
+        <a-plane 
+            rotation="-90 0 0"
+            width="5"
+            height="5"
+            material="opacity:0"
+            shadow="receive:true">
+        </a-plane>
 
-        <!-- Model -->
+        <!-- 🚗 모델 -->
         <a-entity 
             id="car"
             gltf-model="#car-model"
             scale="0.8 0.8 0.8"
+            position="0 0 0"
+
             shadow="cast: true; receive: true"
-            animation-controller>
+
+            animation-controller
+            fix-transparency>
         </a-entity>
 
     </a-marker>
 
     <a-entity camera></a-entity>
+
 </a-scene>
 
 <script>
+// 🎮 UI 제어
 function explode(){
-    document.querySelector('#car').components['animation-controller'].playForward();
+    document.querySelector('#car')
+        .components['animation-controller']
+        .playForward();
 }
 
 function assemble(){
-    document.querySelector('#car').components['animation-controller'].playReverse();
+    document.querySelector('#car')
+        .components['animation-controller']
+        .playReverse();
 }
 </script>
 
