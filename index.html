@@ -1,18 +1,19 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Play UI Flow</title>
-
-<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+<!-- 터치 감지용 투명 레이어 -->
+<div id="touchLayer"></div>
 
 <style>
-body { margin:0; overflow:hidden; }
+#touchLayer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 
-/* 🎮 PLAY 버튼 */
+    z-index: 5; /* AR 위 */
+    background: transparent;
+}
+
+/* PLAY UI */
 .play-ui {
     position: fixed;
     bottom: 60px;
@@ -29,7 +30,6 @@ body { margin:0; overflow:hidden; }
     background: rgba(0,0,0,0.75);
     color: white;
     font-size: 16px;
-    letter-spacing: 2px;
 
     animation: fadeIn 0.6s ease-out, pulse 1.5s infinite;
 }
@@ -46,145 +46,39 @@ body { margin:0; overflow:hidden; }
 }
 </style>
 
-<script>
-// 🎬 애니메이션 컨트롤
-AFRAME.registerComponent('animation-controller', {
-    init: function () {
-        this.modelLoaded = false;
-        this.el.addEventListener('model-loaded', () => {
-            this.modelLoaded = true;
-        });
-    },
-
-    play: function () {
-        if (!this.modelLoaded) return;
-
-        this.el.setAttribute('animation-mixer', {
-            clip: '*',
-            loop: 'once',
-            timeScale: 1,
-            clampWhenFinished: true
-        });
-    }
-});
-
-// 💎 반투명 개선
-AFRAME.registerComponent('fix-transparency', {
-    init: function () {
-        this.el.addEventListener('model-loaded', () => {
-            const mesh = this.el.getObject3D('mesh');
-
-            mesh.traverse((node) => {
-                if (node.isMesh && node.material) {
-
-                    if (node.material.opacity < 1 ||
-                        node.material.name.toLowerCase().includes('glass')) {
-
-                        node.material.transparent = true;
-                        node.material.opacity = 0.5;
-
-                        node.material.depthWrite = false;
-                        node.material.side = THREE.DoubleSide;
-
-                        node.material.emissive = new THREE.Color(0x222222);
-
-                        node.material.metalness = 0;
-                        node.material.roughness = 0.1;
-
-                        node.material.needsUpdate = true;
-                    }
-                }
-            });
-        });
-    }
-});
-</script>
-
-</head>
-
-<body>
-
-<!-- ▶ PLAY UI -->
 <div id="playUI" class="play-ui">
     <div class="play-btn" onclick="playAnimation(event)">
         ▶ PLAY
     </div>
 </div>
 
-<a-scene 
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false;"
-    renderer="
-        colorManagement: true;
-        exposure: 1.3;
-        toneMapping: ACESFilmic;
-        physicallyCorrectLights: true;
-        shadowMap.enabled: true;
-    ">
-
-    <a-assets>
-        <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
-    </a-assets>
-
-    <!-- 조명 -->
-    <a-entity light="type: ambient; intensity: 0.7; color: #bcdcff;"></a-entity>
-
-    <a-entity light="type: directional; intensity: 1.6; color: #fff2cc; castShadow: true"
-        position="2 4 3"></a-entity>
-
-    <a-entity light="type: directional; intensity: 0.6"
-        position="-2 2 1"></a-entity>
-
-    <a-entity light="type: directional; intensity: 0.8"
-        position="0 3 -3"></a-entity>
-
-    <!-- 마커 -->
-    <a-marker preset="hiro">
-
-        <a-plane rotation="-90 0 0" width="5" height="5"
-            material="opacity:0" shadow="receive:true"></a-plane>
-
-        <a-entity 
-            id="car"
-            gltf-model="#car-model"
-            scale="0.8 0.8 0.8"
-
-            shadow="cast: true; receive: true"
-
-            animation-controller
-            fix-transparency>
-        </a-entity>
-
-    </a-marker>
-
-    <a-entity camera></a-entity>
-
-</a-scene>
-
 <script>
 let uiShown = false;
 
-// 📱 첫 터치 → UI 등장
-document.body.addEventListener('click', function () {
+const touchLayer = document.getElementById('touchLayer');
 
+touchLayer.addEventListener('touchstart', showUI, { passive: true });
+touchLayer.addEventListener('click', showUI);
+
+function showUI() {
     if (uiShown) return;
 
-    const ui = document.getElementById('playUI');
-    ui.style.display = 'block';
+    document.getElementById('playUI').style.display = 'block';
+
+    // 👉 한 번 터치하면 레이어 제거 (중요)
+    touchLayer.style.display = 'none';
 
     uiShown = true;
-});
+}
 
-// ▶ 버튼 클릭 → 애니메이션 실행
 function playAnimation(e){
-    e.stopPropagation(); // 중요 (이벤트 중복 방지)
+    e.stopPropagation();
 
     const car = document.querySelector('#car');
     const ui = document.getElementById('playUI');
 
     car.components['animation-controller'].play();
 
-    // UI 사라짐
     ui.style.transition = "opacity 0.5s";
     ui.style.opacity = "0";
 
@@ -193,6 +87,3 @@ function playAnimation(e){
     }, 500);
 }
 </script>
-
-</body>
-</html>
