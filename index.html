@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>toys78 AR 도슨트 - 배터리 애니메이션 통합본</title>
+    <title>toys78 AR - Visibility Fix</title>
     
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -12,27 +12,39 @@
 
     <script>
       /**
-       * 💡 33개의 개별 애니메이션 클립을 강제로 모두 재생하는 커스텀 컴포넌트
+       * 🚨 모델이 안 보일 때를 대비한 '가시성 우선' 애니메이션 로직
        */
-      AFRAME.registerComponent('force-all-animations', {
+      AFRAME.registerComponent('safe-animation-loader', {
         init: function () {
-          this.el.addEventListener('model-loaded', () => {
-            const model = this.el.getObject3D('mesh');
-            if (model && model.animations && model.animations.length > 0) {
-              console.log(model.animations.length + "개의 애니메이션을 감지했습니다. 전체 재생을 시작합니다.");
-              
-              // 모델에 포함된 모든 클립(Action.015, CubeAction 등)을 순회하며 실행
-              model.animations.forEach((clip) => {
-                this.el.setAttribute('animation-mixer', {
-                  clip: clip.name,      // 33개 각각의 이름 지정
-                  loop: 'repeat',      // 무한 반복 (1회만 원하시면 'once'로 변경)
-                  timeScale: 1,        // 재생 속도
-                  crossFadeDuration: 0 // 즉시 실행
+          const el = this.el;
+
+          // 1. 모델 로딩 완료 감지
+          el.addEventListener('model-loaded', () => {
+            console.log("✅ 모델 로딩 성공: ", el.id);
+            
+            // 모델이 너무 작거나 커서 안 보일 수 있으므로 콘솔에 바운딩 박스 크기 출력 (디버깅용)
+            const obj = el.getObject3D('mesh');
+            const box = new THREE.Box3().setFromObject(obj);
+            console.log("모델 크기 데이터:", box.getSize(new THREE.Vector3()));
+
+            // 2. 애니메이션 클립 강제 실행 (약간의 지연 시간을 두어 렌더링 안정성 확보)
+            setTimeout(() => {
+              if (obj.animations && obj.animations.length > 0) {
+                // 33개 클립을 한꺼번에 제어하기 위해 loop: repeat와 clip: * 사용
+                el.setAttribute('animation-mixer', {
+                  clip: '*', 
+                  loop: 'repeat',
+                  timeScale: 1
                 });
-              });
-            } else {
-              console.warn("모델에 애니메이션 데이터가 없습니다.");
-            }
+                console.log(obj.animations.length + "개의 애니메이션 재생 시작");
+              }
+            }, 500); 
+          });
+
+          // 3. 에러 감지
+          el.addEventListener('model-error', (e) => {
+            console.error("❌ 모델 로드 에러 발생:", e);
+            alert("모델 파일을 찾을 수 없거나 형식이 잘못되었습니다.");
           });
         }
       });
@@ -43,7 +55,7 @@
     <a-scene 
         embedded 
         arjs="sourceType: webcam; debugUIEnabled: false;"
-        renderer="logarithmicDepthBuffer: true; colorManagement: true; antialias: true;">
+        renderer="colorManagement: true; antialias: true;">
         
         <a-assets>
             <a-asset-item id="battery-pack" src="carmodel.glb"></a-asset-item>
@@ -53,16 +65,16 @@
             <a-entity 
                 id="target-model"
                 gltf-model="#battery-pack" 
-                scale="0.8 0.8 0.8" 
-                position="0 0.5 0"
-                force-all-animations>
+                scale="1 1 1" 
+                position="0 0 0"
+                safe-animation-loader>
             </a-entity>
         </a-marker>
 
         <a-entity environment="preset: city; active: false; lighting: none;"></a-entity>
         
-        <a-entity light="type: ambient; color: #FFF; intensity: 1.2;"></a-entity>
-        <a-entity light="type: directional; color: #FFF; intensity: 1.0;" position="1 4 3"></a-entity>
+        <a-entity light="type: ambient; color: #FFF; intensity: 2.0;"></a-entity>
+        <a-entity light="type: directional; color: #FFF; intensity: 1.5;" position="1 4 3"></a-entity>
 
         <a-entity camera></a-entity>
     </a-scene>
