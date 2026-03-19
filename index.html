@@ -4,13 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AR Explode Only</title>
-<a-entity 
-    id="car"
-    gltf-model="#car-model"
-    scale="0.8 0.8 0.8"
 
-    animation-mixer="timeScale: 0; loop: once; clampWhenFinished: true">
-</a-entity>
 <!-- A-Frame -->
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 
@@ -40,18 +34,7 @@ button {
     color: white;
 }
 </style>
-<script>
-function explode(){
-    const car = document.querySelector('#car');
 
-    const mixer = car.components['animation-mixer'];
-
-    if (!mixer) return;
-
-    // 🔥 정지 상태 → 재생
-    mixer.mixer.timeScale = 1;
-}
-</script>
 <script>
 // 🎬 애니메이션 컨트롤
 AFRAME.registerComponent('animation-controller', {
@@ -66,7 +49,6 @@ AFRAME.registerComponent('animation-controller', {
     playForward: function () {
         if (!this.modelLoaded) return;
 
-        // 🔥 기존 제거 후 재생 (안 되는 문제 방지)
         this.el.removeAttribute('animation-mixer');
 
         this.el.setAttribute('animation-mixer', {
@@ -78,7 +60,7 @@ AFRAME.registerComponent('animation-controller', {
     }
 });
 
-// 💎 반투명 재질 개선
+// 💎 반투명 + Z-Fighting 해결
 AFRAME.registerComponent('fix-transparency', {
     init: function () {
         this.el.addEventListener('model-loaded', () => {
@@ -87,6 +69,14 @@ AFRAME.registerComponent('fix-transparency', {
             mesh.traverse((node) => {
                 if (node.isMesh && node.material) {
 
+                    // 🔥 Z-Fighting 해결 핵심
+                    node.material.polygonOffset = true;
+                    node.material.polygonOffsetFactor = 1;
+                    node.material.polygonOffsetUnits = 1;
+
+                    node.renderOrder = 1;
+
+                    // 💎 반투명 처리
                     if (node.material.opacity < 1 ||
                         node.material.name.toLowerCase().includes('glass')) {
 
@@ -100,9 +90,9 @@ AFRAME.registerComponent('fix-transparency', {
 
                         node.material.metalness = 0;
                         node.material.roughness = 0.1;
-
-                        node.material.needsUpdate = true;
                     }
+
+                    node.material.needsUpdate = true;
                 }
             });
         });
@@ -114,7 +104,7 @@ AFRAME.registerComponent('fix-transparency', {
 
 <body>
 
-<!-- 🎮 UI (분해 버튼만) -->
+<!-- 🎮 UI -->
 <div class="ui">
     <button onclick="explode()">분해</button>
 </div>
@@ -128,9 +118,9 @@ AFRAME.registerComponent('fix-transparency', {
         toneMapping: ACESFilmic;
         physicallyCorrectLights: true;
         shadowMap.enabled: true;
+        logarithmicDepthBuffer: true;
     ">
 
-    <!-- 모델 -->
     <a-assets>
         <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
     </a-assets>
@@ -153,10 +143,8 @@ AFRAME.registerComponent('fix-transparency', {
         position="0 3 -3">
     </a-entity>
 
-    <!-- 마커 -->
     <a-marker preset="hiro">
 
-        <!-- 그림자 -->
         <a-plane 
             rotation="-90 0 0"
             width="5"
@@ -179,7 +167,7 @@ AFRAME.registerComponent('fix-transparency', {
 
     </a-marker>
 
-    <a-entity camera></a-entity>
+    <a-entity camera="near: 0.1; far: 100"></a-entity>
 
 </a-scene>
 
