@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AR Explode Only</title>
 <a-entity 
+    id="car"
     gltf-model="#car-model"
-    animation-mixer>
+    scale="0.8 0.8 0.8"
+
+    animation-mixer="timeScale: 0; loop: once; clampWhenFinished: true">
 </a-entity>
 <!-- A-Frame -->
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
@@ -37,7 +40,18 @@ button {
     color: white;
 }
 </style>
+<script>
+function explode(){
+    const car = document.querySelector('#car');
 
+    const mixer = car.components['animation-mixer'];
+
+    if (!mixer) return;
+
+    // 🔥 정지 상태 → 재생
+    mixer.mixer.timeScale = 1;
+}
+</script>
 <script>
 // 🎬 애니메이션 컨트롤
 AFRAME.registerComponent('animation-controller', {
