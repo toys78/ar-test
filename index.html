@@ -3,37 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Explode + Transparency Fix</title>
+<title>AR Explode UI Animation</title>
 
-<!-- A-Frame -->
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-
-<!-- AR.js -->
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
-<!-- animation mixer -->
 <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
 <style>
 body { margin:0; overflow:hidden; }
 
-.ui {
+/* 🎯 애니메이션 텍스트 UI */
+.ui-text {
     position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 10px;
+    bottom: 60px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 18px;
+    letter-spacing: 2px;
     z-index: 10;
+
+    animation: fadeIn 1s ease-out, pulse 1.5s infinite;
 }
 
-button {
-    padding: 12px 18px;
-    font-size: 14px;
-    border: none;
-    border-radius: 8px;
-    background: rgba(0,0,0,0.7);
-    color: white;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
 }
 </style>
 
@@ -48,7 +49,7 @@ AFRAME.registerComponent('animation-controller', {
         });
     },
 
-    playForward: function () {
+    play: function () {
         if (!this.modelLoaded) return;
 
         this.el.setAttribute('animation-mixer', {
@@ -57,22 +58,10 @@ AFRAME.registerComponent('animation-controller', {
             timeScale: 1,
             clampWhenFinished: true
         });
-    },
-
-    playReverse: function () {
-        if (!this.modelLoaded) return;
-
-        this.el.setAttribute('animation-mixer', {
-            clip: '*',
-            loop: 'once',
-            timeScale: -1,
-            startAt: 1,
-            clampWhenFinished: true
-        });
     }
 });
 
-// 💎 반투명 재질 개선
+// 💎 반투명 개선
 AFRAME.registerComponent('fix-transparency', {
     init: function () {
         this.el.addEventListener('model-loaded', () => {
@@ -87,10 +76,9 @@ AFRAME.registerComponent('fix-transparency', {
                         node.material.transparent = true;
                         node.material.opacity = 0.5;
 
-                        node.material.depthWrite = false; // 🔥 핵심
+                        node.material.depthWrite = false;
                         node.material.side = THREE.DoubleSide;
 
-                        // 가짜 HDR 효과
                         node.material.emissive = new THREE.Color(0x222222);
 
                         node.material.metalness = 0;
@@ -109,10 +97,9 @@ AFRAME.registerComponent('fix-transparency', {
 
 <body>
 
-<!-- 🎮 UI -->
-<div class="ui">
-    <button onclick="explode()">분해</button>
-    <button onclick="assemble()">조립</button>
+<!-- ✨ 애니메이션 텍스트 -->
+<div id="uiText" class="ui-text">
+    TAP TO EXPLODE
 </div>
 
 <a-scene 
@@ -126,47 +113,32 @@ AFRAME.registerComponent('fix-transparency', {
         shadowMap.enabled: true;
     ">
 
-    <!-- 모델 -->
     <a-assets>
         <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
     </a-assets>
 
-    <!-- 💡 조명 (가짜 HDR 세팅) -->
+    <!-- 조명 -->
     <a-entity light="type: ambient; intensity: 0.7; color: #bcdcff;"></a-entity>
 
-    <a-entity 
-        light="type: directional; intensity: 1.6; color: #fff2cc; castShadow: true"
-        position="2 4 3">
-    </a-entity>
+    <a-entity light="type: directional; intensity: 1.6; color: #fff2cc; castShadow: true"
+        position="2 4 3"></a-entity>
 
-    <a-entity 
-        light="type: directional; intensity: 0.6"
-        position="-2 2 1">
-    </a-entity>
+    <a-entity light="type: directional; intensity: 0.6"
+        position="-2 2 1"></a-entity>
 
-    <a-entity 
-        light="type: directional; intensity: 0.8"
-        position="0 3 -3">
-    </a-entity>
+    <a-entity light="type: directional; intensity: 0.8"
+        position="0 3 -3"></a-entity>
 
     <!-- 마커 -->
     <a-marker preset="hiro">
 
-        <!-- 그림자 받는 바닥 -->
-        <a-plane 
-            rotation="-90 0 0"
-            width="5"
-            height="5"
-            material="opacity:0"
-            shadow="receive:true">
-        </a-plane>
+        <a-plane rotation="-90 0 0" width="5" height="5"
+            material="opacity:0" shadow="receive:true"></a-plane>
 
-        <!-- 🚗 모델 -->
         <a-entity 
             id="car"
             gltf-model="#car-model"
             scale="0.8 0.8 0.8"
-            position="0 0 0"
 
             shadow="cast: true; receive: true"
 
@@ -181,18 +153,24 @@ AFRAME.registerComponent('fix-transparency', {
 </a-scene>
 
 <script>
-// 🎮 UI 제어
-function explode(){
-    document.querySelector('#car')
-        .components['animation-controller']
-        .playForward();
-}
+// 🎯 클릭 시 분해 + UI 제거
+document.body.addEventListener('click', function () {
 
-function assemble(){
-    document.querySelector('#car')
-        .components['animation-controller']
-        .playReverse();
-}
+    const car = document.querySelector('#car');
+    const ui = document.getElementById('uiText');
+
+    if (!car) return;
+
+    car.components['animation-controller'].play();
+
+    // 텍스트 사라지기
+    ui.style.transition = "opacity 0.5s";
+    ui.style.opacity = "0";
+
+    setTimeout(() => {
+        ui.style.display = "none";
+    }, 500);
+});
 </script>
 
 </body>
