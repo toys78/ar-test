@@ -2,113 +2,43 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>toys78 AR</title>
-
-    <!-- ✅ 안정적인 CDN으로 교체 -->
-    <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-
-    <script>
-      /**
-       * 수정된 애니메이션 로더
-       * - model-loaded 이후 animation-mixer를 안전하게 설정
-       * - 바운딩 박스 기반 자동 스케일 보정
-       */
-      AFRAME.registerComponent('safe-animation-loader', {
-        init: function () {
-          const el = this.el;
-
-          el.addEventListener('model-loaded', () => {
-            console.log('✅ 모델 로딩 성공:', el.id);
-
-            const obj = el.getObject3D('mesh');
-            if (!obj) {
-              console.warn('⚠️ mesh 오브젝트를 찾을 수 없음');
-              return;
-            }
-
-            // 바운딩 박스로 모델 실제 크기 확인
-            const box = new THREE.Box3().setFromObject(obj);
-            const size = box.getSize(new THREE.Vector3());
-            console.log('📐 모델 크기 (x/y/z):', size.x.toFixed(3), size.y.toFixed(3), size.z.toFixed(3));
-
-            // 모델이 너무 크거나 작으면 자동 스케일 보정 (목표: 최대 축 1.5 단위)
-            const maxDim = Math.max(size.x, size.y, size.z);
-            if (maxDim > 0) {
-              const targetSize = 1.5;
-              const scaleFactor = targetSize / maxDim;
-              el.setAttribute('scale', `${scaleFactor} ${scaleFactor} ${scaleFactor}`);
-              console.log('🔧 자동 스케일 적용:', scaleFactor.toFixed(4));
-            }
-
-            // 모델 중심을 마커 위로 정렬
-            const center = box.getCenter(new THREE.Vector3());
-            el.setAttribute('position', `${-center.x * (1.5 / Math.max(size.x, size.y, size.z))} 0 0`);
-
-            // ✅ animation-mixer는 model-loaded 내부에서 설정해야 확실하게 작동
-            setTimeout(() => {
-              // THREE.js AnimationClip 접근
-              const mesh = el.getObject3D('mesh');
-              const hasAnim = mesh && mesh.animations && mesh.animations.length > 0;
-
-              if (hasAnim) {
-                console.log(`🎬 애니메이션 ${mesh.animations.length}개 감지, 재생 시작`);
-                el.setAttribute('animation-mixer', {
-                  clip: '*',
-                  loop: 'repeat',
-                  crossFadeDuration: 0,
-                  timeScale: 1
-                });
-              } else {
-                // GLB 루트 씬에 animations가 있는 경우를 위한 fallback
-                console.warn('⚠️ mesh에 애니메이션 없음 — GLB 루트 접근 시도');
-                el.setAttribute('animation-mixer', 'clip: *; loop: repeat;');
-              }
-            }, 300);
-          });
-
-          el.addEventListener('model-error', (e) => {
-            console.error('❌ 모델 로드 실패:', e.detail);
-            alert('모델 파일(carmodel.glb)을 찾을 수 없거나 형식 오류입니다.\n파일 경로와 서버 설정을 확인하세요.');
-          });
-        }
-      });
-    </script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 <body style="margin: 0; overflow: hidden;">
-    <a-scene
-        embedded
-        arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
-        renderer="colorManagement: true; antialias: true; physicallyCorrectLights: true;"
-        vr-mode-ui="enabled: false"
-        loading-screen="enabled: false">
-
-        <a-assets timeout="30000">
-            <!-- ✅ timeout을 30초로 늘려 느린 환경 대응 -->
-            <a-asset-item id="battery-pack" src="carmodel.glb"></a-asset-item>
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        renderer="colorManagement: true; antialias: true;">
+        
+        <a-assets>
+            <a-asset-item id="battery" src="carmodel.glb"></a-asset-item>
         </a-assets>
 
-        <a-marker type="pattern" url="technical-marker.patt" smooth="true" smoothCount="5">
-            <a-entity
-                id="target-model"
-                gltf-model="#battery-pack"
-                scale="1 1 1"
-                position="0 0 0"
-                rotation="0 0 0"
-                safe-animation-loader>
+        <a-marker preset="hiro">
+            <a-entity 
+                id="model-target"
+                gltf-model="#battery" 
+                scale="0.01 0.01 0.01" 
+                position="0 0 0">
             </a-entity>
         </a-marker>
 
-        <!-- ✅ environment 컴포넌트 제거 (씬 충돌 방지) -->
-
-        <!-- 조명 강화 -->
-        <a-entity light="type: ambient; color: #FFFFFF; intensity: 1.5;"></a-entity>
-        <a-entity light="type: directional; color: #FFFFFF; intensity: 2.0;" position="2 4 3"></a-entity>
-        <a-entity light="type: directional; color: #AADDFF; intensity: 0.8;" position="-2 2 -2"></a-entity>
+        <a-entity light="type: ambient; intensity: 3;"></a-entity>
+        <a-entity light="type: directional; intensity: 2;" position="1 4 3"></a-entity>
 
         <a-entity camera></a-entity>
     </a-scene>
+
+    <script>
+        // 모델 로딩 상태를 알림창으로 확인
+        const el = document.querySelector('#model-target');
+        el.addEventListener('model-loaded', () => {
+            alert("✅ 모델 로드 성공! 마커 위를 확인하세요.");
+        });
+        el.addEventListener('model-error', (e) => {
+            alert("❌ 모델 로드 실패: 파일 경로를 확인하세요.");
+        });
+    </script>
 </body>
 </html>
