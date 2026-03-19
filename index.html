@@ -1,50 +1,89 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>hiro AR - Explode Animation Control</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Explode Control UI</title>
 
-    <!-- A-Frame -->
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
-    <!-- AR.js -->
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<style>
+body { margin:0; overflow:hidden; }
 
-    <!-- animation-mixer (필수) -->
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+.ui {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
 
-    <!-- environment -->
-    <script src="https://unpkg.com/aframe-environment-component@1.3.2/dist/aframe-environment-component.min.js"></script>
+button {
+    padding: 12px 18px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+}
+</style>
 
-    <script>
-        AFRAME.registerComponent('toggle-animation', {
-            init: function () {
-                this.isPlaying = false;
-                const mixer = this.el;
+<script>
+AFRAME.registerComponent('animation-controller', {
+    init: function () {
+        this.mixer = null;
+        this.modelLoaded = false;
 
-                this.el.sceneEl.addEventListener('click', () => {
-                    this.isPlaying = !this.isPlaying;
-
-                    if (this.isPlaying) {
-                        mixer.setAttribute('animation-mixer', {
-                            clip: '*',
-                            loop: 'once',
-                            timeScale: 1
-                        });
-                    } else {
-                        mixer.removeAttribute('animation-mixer');
-                    }
-                });
-            }
+        this.el.addEventListener('model-loaded', () => {
+            this.modelLoaded = true;
         });
-    </script>
+    },
+
+    playForward: function () {
+        if (!this.modelLoaded) return;
+
+        this.el.setAttribute('animation-mixer', {
+            clip: '*',
+            loop: 'once',
+            timeScale: 1,
+            clampWhenFinished: true
+        });
+    },
+
+    playReverse: function () {
+        if (!this.modelLoaded) return;
+
+        this.el.setAttribute('animation-mixer', {
+            clip: '*',
+            loop: 'once',
+            timeScale: -1,
+            startAt: 1,
+            clampWhenFinished: true
+        });
+    },
+
+    stop: function () {
+        this.el.removeAttribute('animation-mixer');
+    }
+});
+</script>
+
 </head>
 
-<body style="margin: 0; overflow: hidden;">
+<body>
+
+<!-- UI -->
+<div class="ui">
+    <button onclick="explode()">분해</button>
+    <button onclick="assemble()">조립</button>
+</div>
 
 <a-scene 
-    embedded 
+    embedded
     arjs="sourceType: webcam; debugUIEnabled: false;"
     renderer="
         colorManagement: true;
@@ -54,62 +93,52 @@
         shadowMap.enabled: true;
     ">
 
-    <!-- Assets -->
     <a-assets>
         <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
     </a-assets>
 
-    <!-- Environment -->
-    <a-entity environment="preset: city; lighting: none; skyType: atmosphere;"></a-entity>
-
     <!-- Lighting -->
     <a-entity light="type: ambient; intensity: 0.7; color: #bcdcff;"></a-entity>
 
-    <a-entity 
-        light="type: directional; intensity: 1.6; color: #fff2cc; castShadow: true"
-        position="2 4 3">
-    </a-entity>
+    <a-entity light="type: directional; intensity: 1.6; color: #fff2cc; castShadow: true"
+        position="2 4 3"></a-entity>
 
-    <a-entity 
-        light="type: directional; intensity: 0.6"
-        position="-2 2 1">
-    </a-entity>
+    <a-entity light="type: directional; intensity: 0.6"
+        position="-2 2 1"></a-entity>
 
-    <a-entity 
-        light="type: directional; intensity: 0.8"
-        position="0 3 -3">
-    </a-entity>
+    <a-entity light="type: directional; intensity: 0.8"
+        position="0 3 -3"></a-entity>
 
     <!-- Marker -->
     <a-marker preset="hiro">
 
-        <!-- Shadow receiver -->
-        <a-plane 
-            rotation="-90 0 0"
-            width="5"
-            height="5"
-            material="opacity: 0"
-            shadow="receive: true">
-        </a-plane>
+        <!-- Shadow -->
+        <a-plane rotation="-90 0 0" width="5" height="5"
+            material="opacity:0" shadow="receive:true"></a-plane>
 
         <!-- Model -->
         <a-entity 
-            id="car-unit"
+            id="car"
             gltf-model="#car-model"
             scale="0.8 0.8 0.8"
-            position="0 0 0"
-
             shadow="cast: true; receive: true"
-
-            toggle-animation>
+            animation-controller>
         </a-entity>
 
     </a-marker>
 
-    <!-- Camera -->
     <a-entity camera></a-entity>
-
 </a-scene>
+
+<script>
+function explode(){
+    document.querySelector('#car').components['animation-controller'].playForward();
+}
+
+function assemble(){
+    document.querySelector('#car').components['animation-controller'].playReverse();
+}
+</script>
 
 </body>
 </html>
