@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Explode UI Animation</title>
+<title>AR Play UI Flow</title>
 
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -12,18 +12,26 @@
 <style>
 body { margin:0; overflow:hidden; }
 
-/* 🎯 애니메이션 텍스트 UI */
-.ui-text {
+/* 🎮 PLAY 버튼 */
+.play-ui {
     position: fixed;
     bottom: 60px;
     width: 100%;
     text-align: center;
-    color: white;
-    font-size: 18px;
-    letter-spacing: 2px;
     z-index: 10;
+    display: none;
+}
 
-    animation: fadeIn 1s ease-out, pulse 1.5s infinite;
+.play-btn {
+    display: inline-block;
+    padding: 14px 24px;
+    border-radius: 30px;
+    background: rgba(0,0,0,0.75);
+    color: white;
+    font-size: 16px;
+    letter-spacing: 2px;
+
+    animation: fadeIn 0.6s ease-out, pulse 1.5s infinite;
 }
 
 @keyframes fadeIn {
@@ -43,7 +51,6 @@ body { margin:0; overflow:hidden; }
 AFRAME.registerComponent('animation-controller', {
     init: function () {
         this.modelLoaded = false;
-
         this.el.addEventListener('model-loaded', () => {
             this.modelLoaded = true;
         });
@@ -97,9 +104,11 @@ AFRAME.registerComponent('fix-transparency', {
 
 <body>
 
-<!-- ✨ 애니메이션 텍스트 -->
-<div id="uiText" class="ui-text">
-    TAP TO EXPLODE
+<!-- ▶ PLAY UI -->
+<div id="playUI" class="play-ui">
+    <div class="play-btn" onclick="playAnimation(event)">
+        ▶ PLAY
+    </div>
 </div>
 
 <a-scene 
@@ -153,24 +162,36 @@ AFRAME.registerComponent('fix-transparency', {
 </a-scene>
 
 <script>
-// 🎯 클릭 시 분해 + UI 제거
+let uiShown = false;
+
+// 📱 첫 터치 → UI 등장
 document.body.addEventListener('click', function () {
 
-    const car = document.querySelector('#car');
-    const ui = document.getElementById('uiText');
+    if (uiShown) return;
 
-    if (!car) return;
+    const ui = document.getElementById('playUI');
+    ui.style.display = 'block';
+
+    uiShown = true;
+});
+
+// ▶ 버튼 클릭 → 애니메이션 실행
+function playAnimation(e){
+    e.stopPropagation(); // 중요 (이벤트 중복 방지)
+
+    const car = document.querySelector('#car');
+    const ui = document.getElementById('playUI');
 
     car.components['animation-controller'].play();
 
-    // 텍스트 사라지기
+    // UI 사라짐
     ui.style.transition = "opacity 0.5s";
     ui.style.opacity = "0";
 
     setTimeout(() => {
         ui.style.display = "none";
     }, 500);
-});
+}
 </script>
 
 </body>
