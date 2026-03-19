@@ -3,22 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>hiro AR Docent - Click to Explode</title>
+    <title>hiro AR Docent - Rendering Fix</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.2/dist/aframe-environment-component.min.js"></script>
 </head>
 <body style="margin: 0; overflow: hidden;">
 
     <a-scene 
         embedded 
         arjs="sourceType: webcam; debugUIEnabled: false;"
-        renderer="colorManagement: true; exposure: 1.5;"
-        cursor="fuse: false; rayOrigin: mouse"> <a-assets>
+        renderer="colorManagement: true; exposure: 2.0; toneMapping: ACESFilmic;">
+        
+        <a-assets>
             <a-asset-item id="battery-model" src="carmodel.glb"></a-asset-item>
         </a-assets>
 
-        <a-entity light="type: ambient; intensity: 1.5;"></a-entity>
-        <a-entity light="type: directional; intensity: 1.8; position: 1 4 2;"></a-entity>
+        <a-entity environment="preset: forest; lighting: none; skyType: atmosphere;"></a-entity>
+
+        <a-entity light="type: ambient; intensity: 2.0;"></a-entity>
+        <a-entity light="type: directional; intensity: 1.5; position: 1 4 3;"></a-entity>
+        <a-entity light="type: directional; intensity: 1.0; position: -1 2 -2;"></a-entity>
 
         <a-marker preset="hiro">
             <a-entity 
@@ -26,17 +31,14 @@
                 gltf-model="#battery-model" 
                 scale="0.5 0.5 0.5" 
                 position="0 0 0"
-                animation__rotate="property: rotation; to: 0 360 0; loop: true; dur: 12000; easing: linear; autoplay: true"
-                
-                /* 분해 애니메이션 트리거: 모델을 터치하면 scale이 커지며 분해되는 효과 연출 */
-                animation__explode="property: scale; to: 0.8 0.8 0.8; dur: 500; startEvents: click"
-                animation__restore="property: scale; to: 0.5 0.5 0.5; dur: 500; startEvents: mouseleave">
+                /* 3. 모델 자체에 물리적 속성을 강제 부여 (메탈릭 재질 보정) */
+                material="roughness: 0.3; metalness: 0.5;"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 12000; easing: linear">
             </a-entity>
         </a-marker>
 
         <a-entity camera></a-entity>
 
     </a-scene>
-
 </body>
 </html>
