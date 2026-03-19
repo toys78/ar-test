@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>hiro AR Docent</title>
+    <title>hiro AR Docent - Integrated Animation</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
@@ -22,13 +22,21 @@
         <a-entity light="type: directional; intensity: 1.8; position: 1 4 2;"></a-entity>
 
         <a-marker preset="hiro">
+            
             <a-entity 
+                id="battery-unit"
                 gltf-model="#battery-model" 
                 scale="0.5 0.5 0.5" 
                 position="0 0 0" 
                 rotation="0 0 0"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 12000; easing: linear; autoplay: true">
+                
+                /* 애니메이션 1: 전체 회전 */
+                animation__rotate="property: rotation; to: 0 360 0; loop: true; dur: 12000; easing: linear; autoplay: true"
+                
+                /* 애니메이션 2: 기존에 쓰던 부드러운 상하 움직임 (필요시 수치 조정) */
+                animation__float="property: position; to: 0 0.15 0; dir: alternate; dur: 2500; loop: true; easing: easeInOutSine; autoplay: true">
             </a-entity>
+
         </a-marker>
 
         <a-entity camera></a-entity>
