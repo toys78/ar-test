@@ -1,35 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    
+    <script>
+      // 💡 클릭 시 애니메이션을 실행하는 커스텀 컴포넌트
+      AFRAME.registerComponent('click-to-animate', {
+        init: function () {
+          const el = this.el;
+          let isPlaying = false;
+
+          el.addEventListener('click', () => {
+            if (!isPlaying) {
+              // 애니메이션 믹서 속성 부여 (처음부터 끝까지 1회 재생)
+              el.setAttribute('animation-mixer', {
+                clip: '*', // 모든 애니메이션 클립 실행
+                loop: 'once', // 1회만 재생
+                clampWhenFinished: true // 끝나고 나서 마지막 프레임 유지
+              });
+              isPlaying = true;
+              console.log("Animation Started!");
+            } else {
+              // 다시 터치하면 애니메이션 제거 (초기화)
+              el.removeAttribute('animation-mixer');
+              isPlaying = false;
+              console.log("Animation Reset");
+            }
+          });
+        }
+      });
+    </script>
 </head>
 
 <body style="margin: 0; overflow: hidden;">
     <a-scene 
         embedded 
         arjs="sourceType: webcam; debugUIEnabled: false;"
-        renderer="logarithmicDepthBuffer: true; colorManagement: true; antialias: true;">
+        renderer="logarithmicDepthBuffer: true; colorManagement: true; antialias: true;"
+        cursor="rayOrigin: mouse"
+        raycaster="objects: .clickable">
         
         <a-assets>
-            <a-asset-item id="car" src="carmodel.glb"></a-asset-item>
+            <a-asset-item id="car-model" src="carmodel.glb"></a-asset-item>
         </a-assets>
 
         <a-marker type="pattern" url="technical-marker.patt">
             <a-entity 
-                id="car-model"
-                gltf-model="#car" 
-                scale="1 1 1" 
+                id="target-model"
+                gltf-model="#car-model" 
+                scale="1.5 1.5 1.5" 
                 position="0 0.5 0"
-                animation-mixer="clip: *; loop: repeat;">
+                class="clickable"
+                click-to-animate>
             </a-entity>
         </a-marker>
 
-        <a-entity light="type: ambient; intensity: 1;"></a-entity>
-        <a-entity light="type: directional; intensity: 1;" position="1 2 1"></a-entity>
+        <a-entity light="type: ambient; color: #FFF; intensity: 1.5;"></a-entity>
+        <a-entity light="type: directional; color: #FFF; intensity: 1.2;" position="1 4 3"></a-entity>
+
         <a-entity camera></a-entity>
     </a-scene>
 </body>
